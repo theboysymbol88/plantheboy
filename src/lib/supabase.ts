@@ -8,131 +8,54 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-    flowType: 'implicit', // เปลี่ยนจาก pkce เป็น implicit เพื่อความเร็ว
+    flowType: 'implicit',
     debug: false,
     storageKey: 'transport-planner-auth'
   },
   global: {
     headers: {
-      'X-Client-Info': 'transport-planner@1.0.0',
-      'Cache-Control': 'no-cache'
+      'X-Client-Info': 'transport-planner@1.0.0'
     }
   },
   db: {
-    schema: 'public',
-    // เพิ่ม connection pooling
-    pool: {
-      max: 10,
-      min: 2,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000
-    }
+    schema: 'public'
   },
   realtime: {
-    // ปิด realtime ชั่วคราวเพื่อลด load
-    enabled: false,
-    params: {
-      eventsPerSecond: 2
-    }
-  },
-  // ลด timeout และเพิ่ม retry logic
-  fetch: async (url, options = {}) => {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000) // เพิ่มเป็น 10 วินาที
-    
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-        headers: {
-          ...options.headers,
-          'Connection': 'keep-alive',
-          'Keep-Alive': 'timeout=5, max=1000'
-        }
-      })
-      
-      clearTimeout(timeoutId)
-      return response
-    } catch (error) {
-      clearTimeout(timeoutId)
-      
-      // Retry logic สำหรับ network errors
-      if (error.name === 'AbortError' || error.message.includes('fetch')) {
-        console.warn('Network error, retrying...', error.message)
-        // Retry หนึ่งครั้งด้วย timeout ที่สั้นกว่า
-        const retryController = new AbortController()
-        const retryTimeoutId = setTimeout(() => retryController.abort(), 5000)
-        
-        try {
-          const retryResponse = await fetch(url, {
-            ...options,
-            signal: retryController.signal
-          })
-          clearTimeout(retryTimeoutId)
-          return retryResponse
-        } catch (retryError) {
-          clearTimeout(retryTimeoutId)
-          throw retryError
-        }
-      }
-      
-      throw error
-    }
+    enabled: false
   }
 })
 
-// ปรับปรุง connection test ให้เร็วขึ้น
-let connectionTested = false
+// Simple connection test without complex retry logic
+let isConnected = false
 
-const testConnection = async (skipCache = false) => {
-  if (connectionTested && !skipCache) {
-    return true
-  }
+const testConnection = async () => {
+  if (isConnected) return true
   
   try {
-    console.log('Testing Supabase connection (quick test)...')
+    const { data, error } = await supabase
+      .from('users')
+      .select('count')
+      .limit(1)
+      .maybeSingle()
     
-    // ใช้ health check endpoint แทน
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000)
-    
-    try {
-      const response = await fetch(`${supabaseUrl}/rest/v1/`, {
-        method: 'HEAD',
-        headers: {
-          'apikey': supabaseAnonKey,
-          'Authorization': `Bearer ${supabaseAnonKey}`
-        },
-        signal: controller.signal
-      })
-      
-      clearTimeout(timeoutId)
-      
-      if (response.ok) {
-        console.log('Supabase connection successful')
-        connectionTested = true
-        return true
-      } else {
-        console.warn('Supabase connection warning:', response.status)
-        return false
-      }
-    } catch (fetchError) {
-      clearTimeout(timeoutId)
-      throw fetchError
+    if (!error) {
+      isConnected = true
+      console.log('✅ Database connected successfully')
+      return true
     }
+    
+    console.warn('⚠️ Database connection issue:', error.message)
+    return false
   } catch (error) {
-    console.error('Supabase connection test failed:', error.message)
+    console.warn('⚠️ Database connection failed:', error.message)
     return false
   }
 }
 
-// เรียก test connection แบบ non-blocking
-testConnection().catch(error => {
-  console.warn('Initial connection test failed:', error.message)
-  console.log('App will continue to load, connection will be retried when needed')
-})
+// Test connection on load (non-blocking)
+testConnection()
 
-// Re-export types from the declaration file
+// Re-export types
 export type {
   Driver,
   Vehicle,

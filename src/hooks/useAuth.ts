@@ -10,96 +10,39 @@ export function useAuth() {
 
   useEffect(() => {
     let mounted = true
-    let authTimeoutId: NodeJS.Timeout | null = null
-    let retryCount = 0
-    const maxRetries = 3
     
-    // ปรับปรุง auth initialization
     const initAuth = async () => {
       try {
-        console.log(`Initializing authentication (attempt ${retryCount + 1}/${maxRetries})...`)
+        console.log('🔐 Initializing authentication...')
         
-        // ลด timeout เหลือ 3 วินาที
-        authTimeoutId = setTimeout(() => {
-          if (mounted && loading) {
-            console.log('Auth timeout reached, will retry or proceed without auth')
-            setLoading(false)
-            if (retryCount < maxRetries - 1) {
-              retryCount++
-              setTimeout(() => initAuth(), 1000) // retry หลัง 1 วินาที
-            } else {
-              setError('Database connection timeout. Please check your connection.')
-            }
-          }
-        }, 10000)
-        
-        // ลองเชื่อมต่อแบบง่ายๆ ก่อน
-        let session = null
-        let sessionError = null
-        
-        try {
-          // ใช้ timeout ที่สั้นกว่า
-          const result = await Promise.race([
-            supabase.auth.getSession(),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Session timeout')), 5000)
-            )
-          ]) as any
-          
-          session = result.data?.session
-          sessionError = result.error
-        } catch (timeoutError) {
-          console.warn('Session retrieval timed out:', timeoutError.message)
-          sessionError = timeoutError
-        }
+        // Get current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
         if (!mounted) return
-        
-        // Clear timeout
-        if (authTimeoutId) {
-          clearTimeout(authTimeoutId)
-          authTimeoutId = null
-        }
 
         if (sessionError) {
           console.error('Session error:', sessionError.message)
-          
-          // ถ้าเป็น timeout หรือ network error ให้ retry
-          if (sessionError.message.includes('timeout') || sessionError.message.includes('fetch')) {
-            if (retryCount < maxRetries - 1) {
-              retryCount++
-              console.log(`Retrying auth in 2 seconds... (${retryCount}/${maxRetries})`)
-              setTimeout(() => initAuth(), 2000)
-              return
-            }
-          }
-          
-          setError(`Connection error: ${sessionError.message}`)
+          setError(`Authentication error: ${sessionError.message}`)
           setLoading(false)
           return
         }
 
-        console.log('Session retrieved successfully:', session ? 'Found' : 'None')
+        console.log('Session status:', session ? '✅ Found' : '❌ None')
         setSession(session)
-        setError(null) // Clear any previous errors
+        setError(null)
         
         if (session?.user) {
-          console.log('User found in session:', session.user.email)
+          console.log('👤 User found:', session.user.email)
           await fetchUserProfile(session.user.id)
         } else {
-          console.log('No session found, showing login')
+          console.log('🔓 No session, showing login')
           setLoading(false)
         }
       } catch (error: any) {
         console.error('Auth initialization error:', error)
         if (mounted) {
-          setError(`Connection error: ${error.message || 'Unable to connect to database. Please try refreshing the page.'}`)
+          setError(`Connection error: ${error.message}`)
           setLoading(false)
-        }
-      } finally {
-        if (authTimeoutId) {
-          clearTimeout(authTimeoutId)
-          authTimeoutId = null
         }
       }
     }
@@ -112,10 +55,10 @@ export function useAuth() {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return
       
-      console.log('Auth state changed:', event, session?.user?.email)
+      console.log('🔄 Auth state changed:', event, session?.user?.email)
       
       setSession(session)
-      setError(null) // Clear any previous errors
+      setError(null)
       
       if (session?.user) {
         await fetchUserProfile(session.user.id)
@@ -127,9 +70,6 @@ export function useAuth() {
 
     return () => {
       mounted = false
-      if (authTimeoutId) {
-        clearTimeout(authTimeoutId)
-      }
       subscription.unsubscribe()
     }
   }, [])
@@ -141,7 +81,7 @@ export function useAuth() {
     }
     
     try {
-      console.log('Fetching user profile for:', userId)
+      console.log('👤 Fetching user profile...')
       
       const { data, error } = await supabase
         .from('users')
@@ -150,11 +90,11 @@ export function useAuth() {
         .single()
 
       if (error) {
-        console.error('Error fetching user profile:', error)
+        console.error('User profile error:', error)
         
-        // If user doesn't exist in users table, create a basic profile
+        // If user doesn't exist, create basic profile
         if (error.code === 'PGRST116') {
-          console.log('User not found in users table, creating new profile...')
+          console.log('👤 Creating new user profile...')
           const { data: authUser } = await supabase.auth.getUser()
           if (authUser.user) {
             const newUser = {
@@ -172,11 +112,11 @@ export function useAuth() {
               .single()
             
             if (!createError && createdUser) {
-              console.log('Created new user profile:', createdUser)
+              console.log('✅ User profile created')
               setUser(createdUser)
             } else {
-              console.error('Error creating user profile:', createError)
-              // Create a temporary user object to allow access
+              console.error('❌ Failed to create user profile:', createError)
+              // Create temporary user
               setUser({
                 id: authUser.user.id,
                 user_code: 'TEMP',
@@ -191,8 +131,7 @@ export function useAuth() {
             }
           }
         } else {
-          // Other database errors - create temporary user to allow access
-          console.error('Database error, creating temporary user:', error)
+          // Create temporary user for other errors
           const { data: authUser } = await supabase.auth.getUser()
           if (authUser.user) {
             setUser({
@@ -209,12 +148,12 @@ export function useAuth() {
           }
         }
       } else {
-        console.log('User profile loaded:', data)
+        console.log('✅ User profile loaded')
         setUser(data)
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error)
-      // Don't block login for profile errors
+      console.error('Profile fetch error:', error)
+      // Create temporary user on error
       const { data: authUser } = await supabase.auth.getUser()
       if (authUser.user) {
         setUser({
@@ -262,7 +201,6 @@ export function useAuth() {
     if (error) throw error
 
     if (data.user) {
-      // Create user profile
       const { error: profileError } = await supabase
         .from('users')
         .insert([

@@ -9,19 +9,15 @@ export function useSupabaseQuery<T>(
 ) {
   return useQuery<T[]>({
     queryKey: key,
-    staleTime: 60000, // เพิ่มเป็น 1 นาที
-    gcTime: 600000, // เพิ่มเป็น 10 นาที
-    refetchOnWindowFocus: false, // ปิดการ refetch เมื่อ focus window
-    refetchOnMount: false, // ปิดการ refetch เมื่อ mount ถ้ามี cache
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
     queryFn: async () => {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // เพิ่มเป็น 10 วินาที
-      
       try {
         let query = supabase
           .from(tableName)
           .select(select || '*')
-          .abortSignal(controller.signal)
 
         if (filters) {
           Object.entries(filters).forEach(([column, value]) => {
@@ -33,24 +29,26 @@ export function useSupabaseQuery<T>(
 
         const { data, error } = await query
 
-        if (error) throw error
+        if (error) {
+          console.error(`Query error for ${tableName}:`, error)
+          throw error
+        }
+        
         return data || []
-      } finally {
-        clearTimeout(timeoutId)
+      } catch (error) {
+        console.error(`Failed to fetch ${tableName}:`, error)
+        throw error
       }
     },
     retry: (failureCount, error) => {
-      // เพิ่มเงื่อนไข retry
+      // Don't retry auth errors
       if (error?.message?.includes('JWT') || error?.message?.includes('permission')) {
         return false
       }
-      // Retry สำหรับ network/timeout errors
-      if (error?.message?.includes('timeout') || error?.message?.includes('fetch') || error?.message?.includes('AbortError')) {
-        return failureCount < 3
-      }
-      return failureCount < 1
+      // Retry network errors up to 2 times
+      return failureCount < 2
     },
-    retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 5000), // เริ่มจาก 500ms
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
   })
 }
 
