@@ -9,46 +9,21 @@ export function useSupabaseQuery<T>(
 ) {
   return useQuery<T[]>({
     queryKey: key,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: false,
-    refetchOnMount: true,
     queryFn: async () => {
-      try {
-        let query = supabase
-          .from(tableName)
-          .select(select || '*')
+      let query = supabase.from(tableName).select(select || '*')
 
-        if (filters) {
-          Object.entries(filters).forEach(([column, value]) => {
-            if (value !== undefined && value !== null) {
-              query = query.eq(column, value)
-            }
-          })
-        }
-
-        const { data, error } = await query
-
-        if (error) {
-          console.error(`Query error for ${tableName}:`, error)
-          throw error
-        }
-        
-        return data || []
-      } catch (error) {
-        console.error(`Failed to fetch ${tableName}:`, error)
-        throw error
+      if (filters) {
+        Object.entries(filters).forEach(([column, value]) => {
+          if (value !== undefined && value !== null) {
+            query = query.eq(column, value)
+          }
+        })
       }
+
+      const { data, error } = await query
+      if (error) throw error
+      return data || []
     },
-    retry: (failureCount, error) => {
-      // Don't retry auth errors
-      if (error?.message?.includes('JWT') || error?.message?.includes('permission')) {
-        return false
-      }
-      // Retry network errors up to 2 times
-      return failureCount < 2
-    },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
   })
 }
 

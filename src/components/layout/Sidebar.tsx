@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { 
   LayoutDashboard, 
@@ -6,16 +5,9 @@ import {
   Users, 
   Truck, 
   Calendar, 
-  AlertTriangle,
-  Bell,
-  Lightbulb,
-  Download,
-  History,
+  Building,
   Wrench,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Building
+  X
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -24,24 +16,16 @@ interface SidebarProps {
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Routes', href: '/routes', icon: Route },
-  { name: 'Schedules', href: '/schedules', icon: Calendar },
-  { name: 'Customers', href: '/customers', icon: Building },
-  { name: 'Drivers', href: '/drivers', icon: Users },
-  { name: 'Vehicles', href: '/vehicles', icon: Truck },
-  { name: 'Vehicle Types', href: '/vehicle-types', icon: Wrench },
-  { name: 'Conflicts', href: '/conflicts', icon: AlertTriangle },
-  { name: 'Alerts', href: '/alerts', icon: Bell },
-  { name: 'Suggestions', href: '/suggestions', icon: Lightbulb },
-  { name: 'Exports', href: '/exports', icon: Download },
-  { name: 'Audit Logs', href: '/audit', icon: History },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'หน้าหลัก', href: '/', icon: LayoutDashboard },
+  { name: 'ตารางงาน', href: '/schedules', icon: Calendar },
+  { name: 'เส้นทาง', href: '/routes', icon: Route },
+  { name: 'ลูกค้า', href: '/customers', icon: Building },
+  { name: 'คนขับ', href: '/drivers', icon: Users },
+  { name: 'รถ', href: '/vehicles', icon: Truck },
+  { name: 'ประเภทรถ', href: '/vehicle-types', icon: Wrench },
 ]
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
-
   return (
     <>
       {/* Mobile overlay */}
@@ -54,24 +38,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <div className={`
-        fixed left-0 top-0 h-full bg-white shadow-lg border-r border-gray-200 z-50 transition-all duration-300
+        fixed left-0 top-0 h-full bg-white shadow-lg border-r border-gray-200 z-50 transition-all duration-300 w-64
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        ${collapsed ? 'w-16' : 'w-64'}
         lg:translate-x-0 lg:static lg:inset-0
       `}>
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          {!collapsed && (
-            <h2 className="text-lg font-semibold text-gray-900">Transport Planner</h2>
-          )}
+          <h2 className="text-lg font-semibold text-gray-900">ระบบจัดการขนส่ง</h2>
           <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors lg:hidden"
           >
-            {collapsed ? (
-              <ChevronRight className="h-5 w-5 text-gray-600" />
-            ) : (
-              <ChevronLeft className="h-5 w-5 text-gray-600" />
-            )}
+            <X className="h-5 w-5 text-gray-600" />
           </button>
         </div>
 
@@ -89,7 +66,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               `}
             >
               <item.icon className="h-5 w-5" />
-              {!collapsed && <span className="font-medium">{item.name}</span>}
+              <span className="font-medium">{item.name}</span>
             </NavLink>
           ))}
         </nav>

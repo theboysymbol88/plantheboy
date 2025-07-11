@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { Menu, Bell, User, LogOut, Settings } from 'lucide-react'
+import { Menu, Bell, User, LogOut } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
-import { formatDate } from '../../lib/utils'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -25,13 +24,13 @@ export function Header({ onMenuClick }: HeaderProps) {
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuClick}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors lg:hidden"
           >
             <Menu className="h-5 w-5 text-gray-600" />
           </button>
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Transport Planner</h1>
-            <p className="text-sm text-gray-500">{formatDate(new Date())}</p>
+            <h1 className="text-xl font-semibold text-gray-900">ระบบจัดการขนส่ง</h1>
+            <p className="text-sm text-gray-500">วันนี้: {new Date().toLocaleDateString('th-TH')}</p>
           </div>
         </div>
 
@@ -61,16 +60,12 @@ export function Header({ onMenuClick }: HeaderProps) {
 
             {showUserMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </button>
                 <button
                   onClick={handleSignOut}
                   className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                 >
                   <LogOut className="h-4 w-4" />
-                  Sign Out
+                  ออกจากระบบ
                 </button>
               </div>
             )}
