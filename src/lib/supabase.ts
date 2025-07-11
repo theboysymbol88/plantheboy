@@ -38,7 +38,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   // ลด timeout และเพิ่ม retry logic
   fetch: async (url, options = {}) => {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 3000) // ลดเหลือ 3 วินาที
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // เพิ่มเป็น 10 วินาที
     
     try {
       const response = await fetch(url, {
@@ -61,7 +61,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         console.warn('Network error, retrying...', error.message)
         // Retry หนึ่งครั้งด้วย timeout ที่สั้นกว่า
         const retryController = new AbortController()
-        const retryTimeoutId = setTimeout(() => retryController.abort(), 2000)
+        const retryTimeoutId = setTimeout(() => retryController.abort(), 5000)
         
         try {
           const retryResponse = await fetch(url, {
@@ -94,7 +94,7 @@ const testConnection = async (skipCache = false) => {
     
     // ใช้ health check endpoint แทน
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 2000)
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
     
     try {
       const response = await fetch(`${supabaseUrl}/rest/v1/`, {

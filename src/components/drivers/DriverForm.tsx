@@ -3,8 +3,10 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { X, Loader2 } from 'lucide-react'
-import { useSupabaseMutation } from '../../hooks/useSupabaseQuery'
+import { useSupabaseMutation, useSupabaseQuery } from '../../hooks/useSupabaseQuery'
 import toast from 'react-hot-toast'
+import { useEffect } from 'react'
+import { supabase } from '../../lib/supabase'
 
 const driverSchema = z.object({
   name: z.string().min(1, 'Name is required'),

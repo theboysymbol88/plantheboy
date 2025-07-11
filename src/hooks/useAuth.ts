@@ -31,7 +31,7 @@ export function useAuth() {
               setError('Database connection timeout. Please check your connection.')
             }
           }
-        }, 3000)
+        }, 10000)
         
         // ลองเชื่อมต่อแบบง่ายๆ ก่อน
         let session = null
@@ -42,7 +42,7 @@ export function useAuth() {
           const result = await Promise.race([
             supabase.auth.getSession(),
             new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Session timeout')), 2000)
+              setTimeout(() => reject(new Error('Session timeout')), 5000)
             )
           ]) as any
           

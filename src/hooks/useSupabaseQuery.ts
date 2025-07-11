@@ -15,7 +15,7 @@ export function useSupabaseQuery<T>(
     refetchOnMount: false, // ปิดการ refetch เมื่อ mount ถ้ามี cache
     queryFn: async () => {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000) // ลดเหลือ 5 วินาที
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // เพิ่มเป็น 10 วินาที
       
       try {
         let query = supabase
